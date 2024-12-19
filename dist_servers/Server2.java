@@ -60,9 +60,9 @@ public class Server2 {
     }
 
     public static void main(String[] args) {
-    
+
         Server2 server2 = new Server2(5002);
-     
+
         server2.addConnection("localhost", 5001);
         server2.addConnection("localhost", 5003);
 

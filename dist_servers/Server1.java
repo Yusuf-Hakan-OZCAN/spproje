@@ -15,6 +15,8 @@ public class Server1 {
         connections.add(host + ":" + port);
     }
 
+    
+
     public void startServer() {
         new Thread(() -> {
             try (ServerSocket serverSocket = new ServerSocket(port)) {
