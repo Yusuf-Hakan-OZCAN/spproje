@@ -60,25 +60,14 @@ public class Server2 {
     }
 
     public static void main(String[] args) {
-        Server1 server1 = new Server1(5001);
-        Server1 server2 = new Server1(5002);
-        Server1 server3 = new Server1(5003);
-
-        server1.addConnection("localhost", 5002);
-        server1.addConnection("localhost", 5003);
-
+    
+        Server2 server2 = new Server2(5002);
+     
         server2.addConnection("localhost", 5001);
         server2.addConnection("localhost", 5003);
 
-        server3.addConnection("localhost", 5001);
-        server3.addConnection("localhost", 5002);
-
-        server1.startServer();
         server2.startServer();
-        server3.startServer();
-
-        server1.startConnections();
         server2.startConnections();
-        server3.startConnections();
+        
     }
 }
