@@ -20,7 +20,7 @@ public class Server1 {
     public void startServer() {
         new Thread(() -> {
             try (ServerSocket serverSocket = new ServerSocket(port)) {
-                System.out.println("Server"+ port +"adresli portta calisiyor.");
+                System.out.println("Server "+ port +" adresli portta calisiyor.");
                 while (true) {
                     Socket clientSocket = serverSocket.accept();
                     System.out.println("Yeni bir baglanti " + clientSocket.getInetAddress());
