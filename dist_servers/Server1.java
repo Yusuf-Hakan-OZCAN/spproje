@@ -15,12 +15,10 @@ public class Server1 {
         connections.add(host + ":" + port);
     }
 
-    
-
     public void startServer() {
         new Thread(() -> {
             try (ServerSocket serverSocket = new ServerSocket(port)) {
-                System.out.println("Server "+ port +" adresli portta calisiyor.");
+                System.out.println("Server " + port + " adresli portta calisiyor.");
                 while (true) {
                     Socket clientSocket = serverSocket.accept();
                     System.out.println("Yeni bir baglanti " + clientSocket.getInetAddress());
@@ -36,15 +34,15 @@ public class Server1 {
         for (String connection : connections) {
             String[] parts = connection.split(":");
             String host = parts[0];
-            int port = Integer.parseInt(parts[1]);
+            int connectionPort = Integer.parseInt(parts[1]); // Değişken adı güncellendi
 
             new Thread(() -> {
-                try (Socket socket = new Socket(host, port)) {
-                    System.out.println("Baglanti kuruldu " + host + ":" + port);
+                try (Socket socket = new Socket(host, connectionPort)) {
+                    System.out.println("Baglanti kuruldu " + host + ":" + connectionPort);
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                    out.println(" "+this.port+"adresli port baglandi");
+                    out.println(" " + this.port + " adresli port baglandi");
                 } catch (IOException e) {
-                    System.err.println("Connection to " + host + ":" + port + " failed: " + e.getMessage());
+                    System.err.println("Connection to " + host + ":" + connectionPort + " failed: " + e.getMessage());
                 }
             }).start();
         }
@@ -68,5 +66,6 @@ public class Server1 {
         server1.addConnection("localhost", 5003);
 
         server1.startServer();
-        server1.startConnections(); }
+        server1.startConnections();
+    }
 }

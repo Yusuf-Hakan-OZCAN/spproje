@@ -18,7 +18,7 @@ public class Server3 {
     public void startServer() {
         new Thread(() -> {
             try (ServerSocket serverSocket = new ServerSocket(port)) {
-                System.out.println("Server "+ port +" adresli portta calisiyor.");
+                System.out.println("Server " + port + " adresli portta calisiyor.");
                 while (true) {
                     Socket clientSocket = serverSocket.accept();
                     System.out.println("Yeni bir baglanti " + clientSocket.getInetAddress());
@@ -34,15 +34,15 @@ public class Server3 {
         for (String connection : connections) {
             String[] parts = connection.split(":");
             String host = parts[0];
-            int port = Integer.parseInt(parts[1]);
+            int connectionPort = Integer.parseInt(parts[1]); // Değişken adı güncellendi
 
             new Thread(() -> {
-                try (Socket socket = new Socket(host, port)) {
-                    System.out.println("Baglanti kuruldu " + host + ":" + port);
+                try (Socket socket = new Socket(host, connectionPort)) {
+                    System.out.println("Baglanti kuruldu " + host + ":" + connectionPort);
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                    out.println(" "+this.port+"adresli port baglandi");
+                    out.println(" " + this.port + " adresli port baglandi");
                 } catch (IOException e) {
-                    System.err.println("Connection to " + host + ":" + port + " failed: " + e.getMessage());
+                    System.err.println("Connection to " + host + ":" + connectionPort + " failed: " + e.getMessage());
                 }
             }).start();
         }
@@ -60,12 +60,12 @@ public class Server3 {
     }
 
     public static void main(String[] args) {
-        Server3 server3 = new Server3(5003);
+        Server3 Server3 = new Server3(5003);
 
-        server3.addConnection("localhost", 5001);
-        server3.addConnection("localhost", 5002);
+        Server3.addConnection("localhost", 5001);
+        Server3.addConnection("localhost", 5002);
 
-        server3.startServer();
-        server3.startConnections();
+        Server3.startServer();
+        Server3.startConnections();
     }
 }
