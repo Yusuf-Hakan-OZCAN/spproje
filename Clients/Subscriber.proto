@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package protobuf;
+
+message Subscriber {
+    string name_surname = 1;
+    string status = 2; // Possible values: SUBS, ONLN, OFFL
+    google.protobuf.Timestamp last_accessed = 3;
+}
+
+message Capacity {
+    int32 server_id = 1;
+    int32 server_status = 2; // Number of active subscribers
+    google.protobuf.Timestamp timestamp = 3;
+}
+
+message Configuration {
+    int32 max_capacity = 1;
+    string policy = 2;
+}

@@ -1,39 +1,36 @@
 package Clients;
 
-import java.io.*;
-import java.net.*;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.util.Scanner;
+import com.google.protobuf.Timestamp;
+
+// Import generated protobuf classes
+import protobuf.SubscriberProto.Subscriber;
 
 public class Client1 {
-    private final String serverHost;
-    private final int serverPort;
-
-    public Client1(String serverHost, int serverPort) {
-        this.serverHost = serverHost;
-        this.serverPort = serverPort;
-    }
-
-    public void start() {
-        try (Socket socket = new Socket(serverHost, serverPort)) {
-            System.out.println("Server'a baglandi: " + serverHost + ":" + serverPort);
-
-            // Sunucuya mesaj gönderme
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            out.println("Merhaba Server1, bu Client1'dan bir mesaj!");
-
-            // Sunucudan gelen mesajları dinleme
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            String response;
-            while ((response = in.readLine()) != null) {
-                System.out.println("Sunucudan gelen mesaj: " + response);
-            }
-        } catch (IOException e) {
-            System.err.println("Sunucuya baglanirken hata olustu: " + e.getMessage());
-        }
-    }
-
     public static void main(String[] args) {
-        // Server1'in varsayılan portu 5001
-        Client1 client1 = new Client1("localhost", 5001);
-        client1.start();
+        try (Socket socket = new Socket("localhost", 6001);
+             OutputStream output = socket.getOutputStream();
+             Scanner scanner = new Scanner(System.in)) {
+
+            System.out.println("Enter your name:");
+            String name = scanner.nextLine();
+
+            // Create a Subscriber object
+            Subscriber subscriber = Subscriber.newBuilder()
+                .setNameSurname(name)
+                .setStatus("SUBS") // Subscription request
+                .setLastAccessed(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1000).build())
+                .build();
+
+            // Send the Subscriber object to the server
+            subscriber.writeTo(output);
+
+            System.out.println("Subscriber object sent: " + subscriber);
+
+        } catch (Exception e) {
+            System.err.println("Error in Client1: " + e.getMessage());
+        }
     }
 }

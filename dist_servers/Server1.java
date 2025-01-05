@@ -1,71 +1,119 @@
 package dist_servers;
+
 import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
+import dist_servers.protobuf.ConfigurationProto;
+import dist_servers.protobuf.MessageProto;
+import dist_servers.protobuf.SubscriberProto;
+import dist_servers.protobuf.CapacityProto;
+import com.google.protobuf.Timestamp;
 
 public class Server1 {
-    private final int port;
-    private final List<String> connections = new ArrayList<>();
-
-    public Server1(int port) {
-        this.port = port;
-    }
-
-    public void addConnection(String host, int port) {
-        connections.add(host + ":" + port);
-    }
-
-    public void startServer() {
-        new Thread(() -> {
-            try (ServerSocket serverSocket = new ServerSocket(port)) {
-                System.out.println("Server " + port + " adresli portta calisiyor.");
-                while (true) {
-                    Socket clientSocket = serverSocket.accept();
-                    System.out.println("Yeni bir baglanti " + clientSocket.getInetAddress());
-                    handleClient(clientSocket);
-                }
-            } catch (IOException e) {
-                System.err.println("Server socketinde hata: " + e.getMessage());
-            }
-        }).start();
-    }
-
-    public void startConnections() {
-        for (String connection : connections) {
-            String[] parts = connection.split(":");
-            String host = parts[0];
-            int connectionPort = Integer.parseInt(parts[1]); // Değişken adı güncellendi
-
-            new Thread(() -> {
-                try (Socket socket = new Socket(host, connectionPort)) {
-                    System.out.println("Baglanti kuruldu " + host + ":" + connectionPort);
-                    PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-                    out.println(" " + this.port + " adresli port baglandi");
-                } catch (IOException e) {
-                    System.err.println("Connection to " + host + ":" + connectionPort + " failed: " + e.getMessage());
-                }
-            }).start();
-        }
-    }
-
-    private void handleClient(Socket clientSocket) {
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
-            String inputLine;
-            while ((inputLine = in.readLine()) != null) {
-                System.out.println("Cevap: " + inputLine);
-            }
-        } catch (IOException e) {
-            System.err.println("Haberlesme hatasi: " + e.getMessage());
-        }
-    }
+    private static final int CLIENT_PORT = 6001;
+    private static final int ADMIN_PORT = 7001;
+    private static final String PLOTTER_HOST = "localhost";
+    private static final int PLOTTER_PORT = 8000;
+    private static List<SubscriberProto.Subscriber> subscribers = new ArrayList<>();
 
     public static void main(String[] args) {
-        Server1 server1 = new Server1(5001);
+        // Start client listener thread
+        Thread clientListener = new Thread(() -> listenForClients());
+        clientListener.start();
 
-        server1.addConnection("localhost", 5002);
-        server1.addConnection("localhost", 5003);
+        // Start admin listener thread
+        Thread adminListener = new Thread(() -> listenForAdmin());
+        adminListener.start();
+    }
 
-        server1.startServer();
-        server1.startConnections();
+    private static void listenForClients() {
+        try (ServerSocket serverSocket = new ServerSocket(CLIENT_PORT)) {
+            System.out.println("Server1 listening for clients on port " + CLIENT_PORT);
+
+            while (true) {
+                try (Socket clientSocket = serverSocket.accept();
+                     InputStream input = clientSocket.getInputStream()) {
+
+                    SubscriberProto.Subscriber subscriber = SubscriberProto.Subscriber.parseFrom(input);
+                    subscribers.add(subscriber);
+
+                    System.out.println("Received subscriber: " + subscriber);
+                } catch (Exception e) {
+                    System.err.println("Error processing client: " + e.getMessage());
+                }
+            }
+
+        } catch (Exception e) {
+            System.err.println("Error in client listener: " + e.getMessage());
+        }
+    }
+
+    private static void listenForAdmin() {
+        try (ServerSocket serverSocket = new ServerSocket(ADMIN_PORT)) {
+            System.out.println("Server1 listening for admin on port " + ADMIN_PORT);
+    
+            while (true) {
+                try (Socket adminSocket = serverSocket.accept();
+                     InputStream input = adminSocket.getInputStream();
+                     OutputStream output = adminSocket.getOutputStream()) {
+    
+                    // Parse the incoming message (capacity request)
+                    CapacityProto.CapacityRequest request = CapacityProto.CapacityRequest.parseFrom(input);
+                    System.out.println("Received capacity request for server ID: " + request.getServerId());
+    
+                    if (request.getServerId() == 1) {
+                        // Create and send capacity response
+                        CapacityProto.Capacity capacityResponse = CapacityProto.Capacity.newBuilder()
+                                .setServerId(1)
+                                .setServerStatus(subscribers.size())
+                                .setTimestamp(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1000).build())
+                                .build();
+    
+                        output.write(capacityResponse.toByteArray());
+                        output.flush();
+                        System.out.println("Sent capacity response: " + capacityResponse);
+                    }
+    
+                } catch (Exception e) {
+                    System.err.println("Error processing admin request: " + e.getMessage());
+                }
+            }
+    
+        } catch (Exception e) {
+            System.err.println("Error in admin listener: " + e.getMessage());
+        }
+    }
+    
+
+    private static void sendCapacityToPlotter() {
+        new Thread(() -> {
+            while (true) {
+                try {
+                    CapacityProto.Capacity capacityResponse = CapacityProto.Capacity.newBuilder()
+                            .setServerId(1)
+                            .setServerStatus(subscribers.size())
+                            .setTimestamp(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1000).build())
+                            .build();
+
+                    try (Socket plotterSocket = new Socket(PLOTTER_HOST, PLOTTER_PORT);
+                         OutputStream output = plotterSocket.getOutputStream()) {
+
+                        String json = "{\"server_id\": " + capacityResponse.getServerId() + ", \"server_status\": " + capacityResponse.getServerStatus() + ", \"timestamp\": " + capacityResponse.getTimestamp().getSeconds() + "}";
+
+                        output.write(json.getBytes());
+                        output.flush();
+
+                        System.out.println("Sent to plotter: " + json);
+                    }
+
+                    Thread.sleep(5000);
+
+                } catch (Exception e) {
+                    System.err.println("Error sending to plotter: " + e.getMessage());
+                }
+            }
+        }).start();
     }
 }
